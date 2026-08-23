@@ -1,0 +1,34 @@
+# Any agent CLI can power a node. A `cmd:` node wraps whatever non-interactive
+# agent command you already use — Claude Code, Codex, or anything else — and
+# the gate judges its output exactly like any other node. Native `prompt:`
+# nodes (see agent-review.steps.yaml) run through the Pi CLI.
+#
+# Requires the `claude` and `codex` CLIs on PATH and authenticated; both nodes
+# may incur provider cost.
+version: 1
+workflow: any-agent
+input:
+  required: true
+  description: A short topic; each agent writes one sentence about it
+steps:
+  - id: claude-code
+    cmd: claude -p "Reply with exactly one sentence about $(cat "$INPUT")."
+    gate: >-
+      test "$(wc -w < "$OUT")" -ge 4 && grep -q '[.!?]' "$OUT"
+    timeout: 240
+  - id: codex
+    cmd: >-
+      codex exec --skip-git-repo-check
+      --output-last-message "$RUN/codex.last"
+      "Reply with exactly one sentence about $(cat "$INPUT")."
+      >/dev/null 2>&1 && cat "$RUN/codex.last"
+    gate: >-
+      test "$(wc -w < "$OUT")" -ge 4 && grep -q '[.!?]' "$OUT"
+    timeout: 240
+  - id: combine
+    needs: [claude-code, codex]
+    cmd: >-
+      printf 'claude-code: %s\ncodex: %s\n'
+      "$(cat "$RUN/claude-code.md")" "$(cat "$RUN/codex.md")"
+    gate: >-
+      grep -q '^claude-code: .' "$OUT" && grep -q '^codex: .' "$OUT"

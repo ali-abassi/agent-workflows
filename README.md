@@ -37,6 +37,34 @@ execution contract underneath one.
   exact input, every step's output, what each step cost, and a full timeline.
   No server, no database, no dashboard.
 
+## When to use it
+
+Reach for Agent Workflows when:
+
+- a job has **more than one step** and skipping or fudging a step is not
+  acceptable (releases, migrations, content pipelines, review chains);
+- a human must **approve a checkpoint** midway, and the job should stop and
+  later resume exactly there;
+- you need to show **what ran, what it produced, and what it cost**.
+
+Skip it when a single command or a one-off prompt does the job, or when you
+need org-wide scheduling across machines (see the comparison below).
+
+## Works with Claude Code, Codex, and Pi
+
+Any agent — or any human — can use this in two roles, and both are exercised
+by the shipped examples:
+
+1. **As the operator.** `piw` is a plain CLI with `--json` receipts, so
+   Claude Code, Codex, Pi, or a shell script can create, validate, run,
+   inspect, and resume workflows.
+2. **As a node runtime.** A `cmd:` node wraps any non-interactive agent
+   command, and the gate judges its output like any other node
+   ([examples/any-agent.steps.yaml](examples/any-agent.steps.yaml) runs
+   Claude Code via `claude -p` and Codex via `codex exec` side by side).
+   Native `prompt:` nodes run through the Pi CLI with per-step model,
+   thinking, schema, and tool controls.
+
 ## Which command, when
 
 | You want to | Run |
