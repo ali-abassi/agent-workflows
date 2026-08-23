@@ -207,10 +207,17 @@ def cmd_resume(args: argparse.Namespace) -> int:
 
 def cmd_inspect(args: argparse.Namespace) -> int:
     path = workflow_path(args.workflow)
-    run_dir = resolve_run(path, args.run) if args.run else sorted(
-        [item for item in (path.parent / "runs").iterdir() if item.is_dir()],
-        key=lambda item: item.stat().st_mtime,
-    )[-1]
+    if args.run:
+        run_dir = resolve_run(path, args.run)
+    else:
+        runs = path.parent / "runs"
+        candidates = sorted(
+            [item for item in runs.iterdir() if item.is_dir()] if runs.is_dir() else [],
+            key=lambda item: item.stat().st_mtime,
+        )
+        if not candidates:
+            raise SystemExit(f"no runs found for workflow: {path}")
+        run_dir = candidates[-1]
     state = json.loads((run_dir / "state.json").read_text(encoding="utf-8"))
     ledger = json.loads((run_dir / "ledger.json").read_text(encoding="utf-8"))
     artifacts = sorted(item.name for item in run_dir.glob("*.md"))

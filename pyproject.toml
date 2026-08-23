@@ -8,12 +8,47 @@ version = "0.1.0"
 description = "Deterministic workflow creation, execution, recovery, and evidence for agents"
 readme = "README.md"
 license = { text = "MIT" }
+authors = [{ name = "Ali Abassi" }]
 requires-python = ">=3.10"
+keywords = ["agents", "workflows", "automation", "deterministic", "evidence"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: MacOS",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+]
 dependencies = [
   "PyYAML>=6,<7",
   "ruamel.yaml>=0.18,<0.19",
   "jsonschema>=4.23,<5",
 ]
 
+[project.urls]
+Homepage = "https://github.com/ali-abassi/pi-graph-core"
+Repository = "https://github.com/ali-abassi/pi-graph-core"
+Issues = "https://github.com/ali-abassi/pi-graph-core/issues"
+Documentation = "https://github.com/ali-abassi/pi-graph-core#readme"
+
 [tool.setuptools]
 py-modules = []
+script-files = ["bin/piw"]
+
+[tool.setuptools.data-files]
+scripts = [
+  "scripts/graph.py",
+  "scripts/piw.py",
+  "scripts/run_bundle.py",
+  "scripts/run_steps.py",
+]
+schemas = [
+  "schemas/run-bundle.schema.json",
+  "schemas/run-state.schema.json",
+  "schemas/trace-event.schema.json",
+  "schemas/workflow.schema.json",
+]

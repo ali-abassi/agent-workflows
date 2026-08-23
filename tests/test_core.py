@@ -23,6 +23,17 @@ def run(*args: str, cwd: Path | None = None) -> subprocess.CompletedProcess[str]
 
 
 class CoreContractTests(unittest.TestCase):
+    def test_inspect_without_runs_has_a_clear_error(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            workflow = Path(raw) / "steps.yaml"
+            workflow.write_text(yaml.safe_dump({
+                "version": 1, "workflow": "empty",
+                "steps": [{"id": "one", "cmd": "true"}],
+            }), encoding="utf-8")
+            inspected = run("inspect", str(workflow))
+            self.assertNotEqual(inspected.returncode, 0)
+            self.assertIn("no runs found", inspected.stderr)
+
     def test_create_emits_a_strictly_valid_workflow(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             target = Path(raw) / "created"

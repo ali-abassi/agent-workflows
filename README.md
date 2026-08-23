@@ -1,5 +1,8 @@
 # Pi Graph Core
 
+[![CI](https://github.com/ali-abassi/pi-graph-core/actions/workflows/ci.yml/badge.svg)](https://github.com/ali-abassi/pi-graph-core/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 Deterministic control and evidence for nondeterministic agents—without the
 software-factory platform around it.
 
@@ -12,7 +15,7 @@ create → validate → graph → run → inspect → configure → resume
 The model performs work inside nodes. Code owns dependencies, routing, gates,
 retries, immutable input, durable recovery, and run evidence.
 
-## Five minutes
+## Install from source
 
 ```bash
 git clone https://github.com/ali-abassi/pi-graph-core.git
@@ -25,6 +28,20 @@ python3 -m venv .venv
 ./bin/piw run examples/hello.steps.yaml --input Ada --json
 ./bin/piw inspect examples/hello.steps.yaml --json
 ```
+
+`./bin/piw` automatically uses the repository's `.venv`. To select another
+interpreter, set `PI_GRAPH_CORE_PYTHON=/path/to/python`.
+
+You can also install the command into an existing Python environment:
+
+```bash
+python3 -m pip install .
+piw --help
+```
+
+See [Setup](docs/SETUP.md) for prerequisites and troubleshooting, and
+[Usage](docs/USAGE.md) for the complete author → validate → run → inspect →
+resume lifecycle.
 
 Shell-only workflows need no model runtime. Model, tool, and agent nodes use
 [Pi](https://github.com/earendil-works/pi):
@@ -90,6 +107,10 @@ before accepting an upstream kernel update.
 Workflows execute with the invoking user's permissions. `tools:` is routing,
 not an operating-system sandbox. Review untrusted workflows and use a container
 when filesystem, process, network, or credential isolation matters.
+
+Never commit secrets to workflow files. Commands and agents inherit the
+environment of the `piw` process. See [SECURITY.md](SECURITY.md) for the threat
+boundary and private vulnerability-reporting process.
 
 ## Origin
 

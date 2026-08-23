@@ -1,13 +1,11 @@
-"""Pi Graph — turn a deterministic-workflow steps.yaml into a renderable DAG.
+"""Turn a deterministic-workflow steps.yaml into an inspectable DAG.
 
-This module is the visual layer for the engine installed with this product at
-``~/.pi-graph/scripts/run_steps.py``.
-It does not execute anything; it parses a ``steps.yaml`` into nodes and edges so
-the canvas can draw exactly the graph the runner will execute.
+This module does not execute anything. It parses ``steps.yaml`` into the exact
+nodes and edges used by the CLI graph view and by compatible external viewers.
 
 The dependency rules below are a faithful port of ``run_steps.build_deps``. If
-they drift, the canvas lies about what will run — so ``tests/test_runner_contracts.py`` pins
-them against the real skill file.
+they drift, graph inspection lies about what will run, so behavioral tests must
+change alongside the runner.
 
 Layout lives in a sidecar ``steps.layout.json`` next to the yaml; steps.yaml is
 never written, so hand-authored comments and formatting are safe.
@@ -35,8 +33,7 @@ ROW_HEIGHT = 150
 ORIGIN_X = 60
 ORIGIN_Y = 60
 
-# Longest prompt/cmd body we ship to the browser, so a pathological step can't
-# blow up the /graph response.
+# Longest prompt/cmd body exposed to a graph consumer.
 MAX_BODY = 8000
 
 
@@ -85,7 +82,7 @@ def build_deps(steps: list[dict[str, Any]]) -> tuple[dict[str, set[str]], dict[s
 
     Returns (deps, implicit) where ``implicit[sid]`` is the subset of deps that
     came from the implicit previous-step rule rather than an explicit ``needs:``
-    or a ``{step.x}`` reference. The canvas draws those edges differently,
+    or a ``{step.x}`` reference. Graph consumers can display those differently,
     because an omitted ``needs:`` silently chaining steps is the format's
     sharpest edge.
     """
@@ -379,7 +376,7 @@ _OP_WORDS = {
 
 
 def describe_condition(node: Any, depth: int = 0) -> str:
-    """Render a `when:` condition as a readable one-liner for the canvas.
+    """Render a `when:` condition as a readable one-liner for graph inspection.
 
     `{"op":"equals","path":"/kind","value":"docs"}` -> `kind == "docs"`.
     """
@@ -475,7 +472,7 @@ def resolve_prompt(steps_path: Path, run_dir: Path, step_id: str) -> dict[str, A
     }
 
 
-# Fields the canvas may edit. Everything else in steps.yaml stays hand-authored;
+# Fields compatible graph editors may edit. Everything else stays hand-authored;
 # this is a deliberately small surface so the file remains the source of truth.
 EDITABLE = {
     "model", "thinking", "prompt", "cmd", "gate", "tools", "retries", "timeout",
@@ -492,7 +489,7 @@ def update_step(steps_path: Path, step_id: str, changes: dict[str, Any]) -> dict
     """Patch one step in steps.yaml, preserving comments, order and formatting.
 
     Uses ruamel's round-trip loader so a hand-authored file survives an edit from
-    the canvas. Setting a value to None or "" removes the key, so a step can fall
+    a graph editor. Setting a value to None or "" removes the key, so a step can fall
     back to the workflow default (e.g. clearing a per-step model).
     """
     try:
@@ -612,7 +609,7 @@ def append_steps(steps_path: Path, steps: list[dict[str, Any]]) -> None:
 
 
 def parse_steps(steps_path: Path) -> dict[str, Any]:
-    """Parse a steps.yaml into {nodes, edges} for the canvas."""
+    """Parse a steps.yaml into an inspectable ``{nodes, edges}`` graph."""
     steps_path = Path(steps_path)
     return parse_steps_text(steps_path.read_text(encoding="utf-8"), steps_path)
 
