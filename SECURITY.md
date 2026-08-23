@@ -18,7 +18,7 @@ suggested mitigation. Please avoid accessing data or systems you do not own.
 
 ## Execution boundary
 
-Pi Graph Core executes workflow commands with the permissions and environment
+Agent Workflows executes workflow commands with the permissions and environment
 of the invoking user. It is an orchestration and evidence layer, not a sandbox.
 
 - Treat third-party `steps.yaml`, prompts, retrieved text, and tool output as

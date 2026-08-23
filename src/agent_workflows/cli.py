@@ -124,7 +124,7 @@ def run_summary(run_dir: Path, returncode: int) -> dict[str, Any]:
 
 
 def execute_runner(path: Path, run_dir: Path, extra: list[str], as_json: bool) -> int:
-    command = [sys.executable, "-m", "pi_graph_core.run_steps", str(path),
+    command = [sys.executable, "-m", "agent_workflows.run_steps", str(path),
                "--run-dir", str(run_dir), *extra]
     result = subprocess.run(command, text=True, capture_output=as_json, check=False)
     if as_json:
@@ -296,7 +296,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     if args.json:
         emit(payload, True)
     else:
-        print(f"Pi Graph Core {__version__}")
+        print(f"Agent Workflows {__version__}")
         print(f"Python {payload['python']} on {payload['platform']}")
         for name, passed in required.items():
             print(f"required  {name:<13} {'ok' if passed else 'missing'}")

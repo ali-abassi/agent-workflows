@@ -21,7 +21,7 @@ CLI = SCRIPTS / "piw.py"
 sys.path.insert(0, str(SCRIPTS))
 sys.path.insert(0, str(ROOT / "src"))
 
-from pi_graph_core.run_bundle import (  # noqa: E402
+from agent_workflows.run_bundle import (  # noqa: E402
     BundleError,
     RunBundle,
     atomic_write_json,
@@ -69,7 +69,7 @@ class BundleKernelTests(unittest.TestCase):
                 ("run-state.schema.json", state),
                 ("trace-event.schema.json", event),
             ]:
-                schema = json.loads((ROOT / "src" / "pi_graph_core" / "schemas" / filename).read_text())
+                schema = json.loads((ROOT / "src" / "agent_workflows" / "schemas" / filename).read_text())
                 self.assertEqual(list(Draft202012Validator(schema).iter_errors(value)), [])
             self.assertEqual((bundle.run_dir / "workflow.yaml").read_bytes(),
                              b"version: 1\nworkflow: kernel\nsteps: []\n")
@@ -80,7 +80,7 @@ class BundleKernelTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as raw:
             path = Path(raw) / "state.json"
             atomic_write_json(path, {"generation": 1})
-            import pi_graph_core.run_bundle as run_bundle
+            import agent_workflows.run_bundle as run_bundle
             original = run_bundle.os.replace
             run_bundle.os.replace = lambda *_: (_ for _ in ()).throw(OSError("disk fault"))
             try:
@@ -96,7 +96,7 @@ class BundleKernelTests(unittest.TestCase):
             root = Path(raw)
             (root / "run").mkdir()
             bundle = RunBundle(root / "run").acquire()
-            import pi_graph_core.run_bundle as run_bundle
+            import agent_workflows.run_bundle as run_bundle
             original = run_bundle.atomic_write_json
             failed = False
             def fail_manifest_once(path: Path, value: object) -> None:
@@ -126,7 +126,7 @@ class BundleKernelTests(unittest.TestCase):
     def test_manifest_projection_failure_never_reuses_committed_sequence(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             bundle = self.initialize(Path(raw))
-            import pi_graph_core.run_bundle as run_bundle
+            import agent_workflows.run_bundle as run_bundle
             original = run_bundle.atomic_write_json
             failed = False
             def fail_manifest_once(path: Path, value: object) -> None:
@@ -155,7 +155,7 @@ class BundleKernelTests(unittest.TestCase):
     def test_state_projection_failure_truncates_uncommitted_trace_before_reuse(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             bundle = self.initialize(Path(raw))
-            import pi_graph_core.run_bundle as run_bundle
+            import agent_workflows.run_bundle as run_bundle
             original = run_bundle.atomic_write_json
             failed = False
             def fail_state_once(path: Path, value: object) -> None:

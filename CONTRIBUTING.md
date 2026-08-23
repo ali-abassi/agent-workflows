@@ -1,6 +1,6 @@
 # Contributing
 
-Issues and focused pull requests are welcome. Pi Graph Core deliberately keeps
+Issues and focused pull requests are welcome. Agent Workflows deliberately keeps
 only the deterministic workflow kernel; Studio, batch execution, evaluation,
 optimization, scheduling, and software-factory features belong in the full Pi
 Graph repository.
