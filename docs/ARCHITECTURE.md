@@ -1,6 +1,6 @@
 # Architecture
 
-Pi Graph Core separates nondeterministic work from deterministic control.
+Agent Workflows separates nondeterministic work from deterministic control.
 
 ```text
 steps.yaml
@@ -18,19 +18,19 @@ dependency graph ──► runner ──► command or isolated Pi call
 
 ## Components
 
-### `pi_graph_core.cli`
+### `agent_workflows.cli`
 
 The public `piw` command. It resolves workflows and runs, validates before
 dispatch, emits human-readable or JSON receipts, and delegates execution to the
 runner in the same Python environment.
 
-### `pi_graph_core.graph`
+### `agent_workflows.graph`
 
 Parses node dependencies and typed conditions into an inspectable DAG. Its
 dependency rules mirror the runner: explicit `needs`, artifact references,
 `from`, `{prev}`, and the implicit previous-step rule.
 
-### `pi_graph_core.run_steps`
+### `agent_workflows.run_steps`
 
 Owns execution. It selects eligible nodes and dispatches dependency-ready
 nodes concurrently on a bounded pool (top-level `workers:`, default 4),
@@ -39,7 +39,7 @@ classifies failure, applies bounded retry policy, evaluates conditions, and
 records artifacts and ledger entries. Declared dependencies are the only
 serialization guarantee between nodes.
 
-### `pi_graph_core.run_bundle`
+### `agent_workflows.run_bundle`
 
 Owns the durable boundary. It is the sole writer of manifest, state, trace, and
 lock metadata.

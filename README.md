@@ -1,12 +1,12 @@
-# Pi Graph Core
+# Agent Workflows
 
-[![CI](https://github.com/ali-abassi/pi-graph-core/actions/workflows/ci.yml/badge.svg)](https://github.com/ali-abassi/pi-graph-core/actions/workflows/ci.yml)
+[![CI](https://github.com/ali-abassi/agent-workflows/actions/workflows/ci.yml/badge.svg)](https://github.com/ali-abassi/agent-workflows/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB.svg)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **Make agent workflows fail visibly, recover safely, and leave proof.**
 
-Pi Graph Core is a small local workflow kernel for work that may involve
+Agent Workflows is a small local workflow kernel for work that may involve
 nondeterministic models but still needs deterministic control. Models can work
 inside nodes; code owns dependency order, routing, gates, retries, immutable
 inputs, durable recovery, and run evidence.
@@ -51,11 +51,11 @@ execution contract underneath one.
 
 ## Try it in two minutes
 
-Install `piw` (the **p**i **w**orkflow command) from the v0.1.0 release:
+Install `piw` (the **p**i **w**orkflow command) from the v0.2.0 release:
 
 ```bash
 python3 -m pip install \
-  "git+https://github.com/ali-abassi/pi-graph-core.git@v0.1.0"
+  "git+https://github.com/ali-abassi/agent-workflows.git@v0.2.0"
 piw doctor
 ```
 
@@ -92,7 +92,7 @@ Prefer an isolated CLI install? Use
 [`pipx`](https://pipx.pypa.io/stable/installation/):
 
 ```bash
-pipx install "git+https://github.com/ali-abassi/pi-graph-core.git@v0.1.0"
+pipx install "git+https://github.com/ali-abassi/agent-workflows.git@v0.2.0"
 ```
 
 For a source checkout, editable development setup, or troubleshooting, follow
@@ -115,7 +115,7 @@ the [setup guide](docs/SETUP.md).
   `doctor` commands with machine-readable JSON receipts.
 
 See the [usage guide](docs/USAGE.md), [examples](examples/README.md), and the
-published [workflow schema](src/pi_graph_core/schemas/workflow.schema.json).
+published [workflow schema](src/agent_workflows/schemas/workflow.schema.json).
 
 ## Add model and agent nodes
 
@@ -175,7 +175,7 @@ arbitrary workflows are safe or that model output is deterministic.
 | Org-wide orchestration with a server, database, and durable timers | Temporal, Prefect, Dagster |
 | Graphs wired in Python around one agent framework | LangGraph |
 | File-timestamp incremental builds | Make |
-| A local, auditable run contract for agent work | **Pi Graph Core** |
+| A local, auditable run contract for agent work | **Agent Workflows** |
 
 Core's bet is auditability over throughput: gates are shell commands, state is
 a readable directory, resume is fingerprint-verified, and there is no server,
@@ -209,7 +209,7 @@ artifacts.
 - [Contributing](CONTRIBUTING.md)
 - [MIT license](LICENSE)
 
-Pi Graph Core is the reduced, public kernel of
+Agent Workflows is the reduced, public kernel of
 [ali-abassi/pi-graph](https://github.com/ali-abassi/pi-graph). The projects
 share the same control-flow philosophy: models do work; code decides whether
 the work may advance.

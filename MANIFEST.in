@@ -9,5 +9,5 @@ recursive-include docs *.md
 recursive-include examples *.md *.yaml
 prune examples/runs
 recursive-include scripts *.py
-recursive-include src/pi_graph_core/schemas *.json
+recursive-include src/agent_workflows/schemas *.json
 recursive-include tests *.py

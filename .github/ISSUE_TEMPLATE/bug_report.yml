@@ -1,5 +1,5 @@
 name: Bug report
-description: Report reproducible incorrect behavior in Pi Graph Core.
+description: Report reproducible incorrect behavior in Agent Workflows.
 title: "[bug]: "
 labels: [bug]
 body:

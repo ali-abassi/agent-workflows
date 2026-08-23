@@ -9,11 +9,11 @@ from pathlib import Path
 wheel = Path(sys.argv[1])
 names = set(zipfile.ZipFile(wheel).namelist())
 required_suffixes = {
-    "pi_graph_core/cli.py",
-    "pi_graph_core/run_steps.py",
-    "pi_graph_core/run_bundle.py",
-    "pi_graph_core/graph.py",
-    "pi_graph_core/schemas/workflow.schema.json",
+    "agent_workflows/cli.py",
+    "agent_workflows/run_steps.py",
+    "agent_workflows/run_bundle.py",
+    "agent_workflows/graph.py",
+    "agent_workflows/schemas/workflow.schema.json",
     ".dist-info/entry_points.txt",
 }
 missing = sorted(suffix for suffix in required_suffixes

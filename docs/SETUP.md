@@ -16,7 +16,7 @@ Use an isolated [`pipx`](https://pipx.pypa.io/stable/installation/) environment
 when available:
 
 ```bash
-pipx install "git+https://github.com/ali-abassi/pi-graph-core.git@v0.1.0"
+pipx install "git+https://github.com/ali-abassi/agent-workflows.git@v0.2.0"
 piw doctor
 ```
 
@@ -24,22 +24,22 @@ Or install into your current Python environment:
 
 ```bash
 python3 -m pip install \
-  "git+https://github.com/ali-abassi/pi-graph-core.git@v0.1.0"
+  "git+https://github.com/ali-abassi/agent-workflows.git@v0.2.0"
 piw doctor
 ```
 
 Uninstall with the same package manager:
 
 ```bash
-pipx uninstall pi-graph-core
-# or: python3 -m pip uninstall pi-graph-core
+pipx uninstall agent-workflows
+# or: python3 -m pip uninstall agent-workflows
 ```
 
 ## Work from a source checkout
 
 ```bash
-git clone https://github.com/ali-abassi/pi-graph-core.git
-cd pi-graph-core
+git clone https://github.com/ali-abassi/agent-workflows.git
+cd agent-workflows
 python3 -m venv .venv
 .venv/bin/python -m pip install --upgrade pip
 .venv/bin/python -m pip install -e ".[dev]"
@@ -52,7 +52,7 @@ python3 -m venv .venv
 you intentionally installed the package into another interpreter:
 
 ```bash
-PI_GRAPH_CORE_PYTHON=/path/to/python ./bin/piw doctor
+AGENT_WORKFLOWS_PYTHON=/path/to/python ./bin/piw doctor
 ```
 
 If the wrapper reports that Core is not installed, run the editable-install
@@ -73,7 +73,7 @@ piw doctor
 only the deterministic command runtime is available. A missing Pi installation
 does not block shell workflows.
 
-Pi Graph Core does not read provider credentials directly. Pi owns provider
+Agent Workflows does not read provider credentials directly. Pi owns provider
 authentication. Do not put credentials in `steps.yaml`, prompts, command
 arguments, committed run bundles, or repository files.
 
@@ -95,7 +95,7 @@ done
 ### `piw: command not found`
 
 The environment's executable directory is not on `PATH`, or the package is not
-installed there. Run `python3 -m pip show pi-graph-core` with the same Python you
+installed there. Run `python3 -m pip show agent-workflows` with the same Python you
 used during installation. `pipx ensurepath` configures the common pipx path.
 
 ### `pi` is optional or missing

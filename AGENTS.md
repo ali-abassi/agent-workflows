@@ -1,4 +1,4 @@
-# Pi Graph Core
+# Agent Workflows
 
 This repository is the minimal agent-facing distribution of Pi Graph. Keep the
 public surface limited to create, validate, graph, run, resume, inspect, and
@@ -6,7 +6,7 @@ configure. Do not add Studio, batch, evaluation, optimization, scheduling,
 action catalogs, or reporting here.
 
 The workflow schema, parser, runner, and durable bundle writer under
-`src/pi_graph_core/` are the kernel.
+`src/agent_workflows/` are the kernel.
 Changes to them must remain compatible with the full Pi Graph project and need
 behavioral tests. Models do work inside nodes; code owns control flow, gates,
 recovery, and evidence.

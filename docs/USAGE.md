@@ -1,6 +1,6 @@
 # Usage
 
-Pi Graph Core runs inspectable YAML workflows. Models may generate content
+Agent Workflows runs inspectable YAML workflows. Models may generate content
 inside nodes; deterministic code owns dependencies, conditions, gates, retries,
 durable state, and evidence.
 
@@ -245,5 +245,5 @@ Use the weakest runtime that can complete the node:
 filesystem, process, network, or inherited environment.
 
 The complete authoring contract is
-[`src/pi_graph_core/schemas/workflow.schema.json`](../src/pi_graph_core/schemas/workflow.schema.json).
+[`src/agent_workflows/schemas/workflow.schema.json`](../src/agent_workflows/schemas/workflow.schema.json).
 Runnable examples are indexed in [`examples/README.md`](../examples/README.md).
