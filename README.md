@@ -24,7 +24,7 @@ execution contract underneath one.
 
 ## Try it in two minutes
 
-Install the `piw` command from the v0.1.0 release:
+Install `piw` (the **p**i **w**orkflow command) from the v0.1.0 release:
 
 ```bash
 python3 -m pip install \
@@ -43,8 +43,23 @@ piw inspect hello --json
 ```
 
 The run receipt includes a durable run id and every step's terminal status.
-The run directory contains the frozen workflow and input, state projection,
-append-only trace, ledger, artifacts, logs, and per-step Git history.
+Every run lands in `runs/<workflow>-<timestamp>/` next to `steps.yaml` — an
+ordinary directory, readable without a database:
+
+```text
+$ ls hello/runs/hello-20260823-232621/
+input.txt     log.md         normalize.md    result.md  state.json   workflow.yaml
+ledger.json   manifest.json  run-owner.json  run.lock   trace.jsonl  .git/
+```
+
+It holds the frozen workflow and input, the state projection, an append-only
+trace, per-step artifacts, diffable Git history, and a ledger that records what
+each node actually cost:
+
+```json
+{"id": "analyze", "model": "openai-codex/gpt-5.6-luna", "attempts": 1,
+ "passed": true, "seconds": 8.3, "input": 5288, "output": 168, "cost": 0.0012592}
+```
 
 Prefer an isolated CLI install? Use
 [`pipx`](https://pipx.pypa.io/stable/installation/):
@@ -64,6 +79,8 @@ the [setup guide](docs/SETUP.md).
 - Typed JSON output contracts and code-owned conditional routing.
 - Mechanical gates that check artifacts or side effects—not model confidence.
 - Classified, bounded retries with fixed or exponential delay.
+- Concurrent dispatch of dependency-ready nodes (`workers:`, default 4);
+  `needs:` is the serialization guarantee.
 - Immutable per-run input and frozen workflow fingerprints.
 - Atomic state, contiguous JSONL trace, one-writer locking, and crash recovery.
 - Content-addressed cache, per-step ledger, and inspectable Git history.
@@ -124,10 +141,24 @@ environment, and executes the installed command.
 That evidence supports the kernel behavior tested here. It is not a claim that
 arbitrary workflows are safe or that model output is deterministic.
 
+## Why not LangGraph, Temporal, or Make?
+
+| If you need | Use |
+|---|---|
+| Org-wide orchestration with a server, database, and durable timers | Temporal, Prefect, Dagster |
+| Graphs wired in Python around one agent framework | LangGraph |
+| File-timestamp incremental builds | Make |
+| A local, auditable run contract for agent work | **Pi Graph Core** |
+
+Core's bet is auditability over throughput: gates are shell commands, state is
+a readable directory, resume is fingerprint-verified, and there is no server,
+daemon, or database — a run is a directory you can `ls`, `diff`, and commit.
+
 ## Deliberate boundary
 
 Core does **not** include Studio, batch processing, evaluations, optimization,
-scheduling, action catalogs, hosted workers, or the software-factory product.
+scheduling, action catalogs, hosted worker fleets, or the software-factory
+product.
 Those live in the full [Pi Graph](https://github.com/ali-abassi/pi-graph)
 platform.
 

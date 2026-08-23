@@ -32,9 +32,12 @@ dependency rules mirror the runner: explicit `needs`, artifact references,
 
 ### `pi_graph_core.run_steps`
 
-Owns execution. It selects eligible nodes, invokes the weakest configured
-runtime, validates schemas, runs gates, classifies failure, applies bounded
-retry policy, evaluates conditions, and records artifacts and ledger entries.
+Owns execution. It selects eligible nodes and dispatches dependency-ready
+nodes concurrently on a bounded pool (top-level `workers:`, default 4),
+invokes the weakest configured runtime, validates schemas, runs gates,
+classifies failure, applies bounded retry policy, evaluates conditions, and
+records artifacts and ledger entries. Declared dependencies are the only
+serialization guarantee between nodes.
 
 ### `pi_graph_core.run_bundle`
 
