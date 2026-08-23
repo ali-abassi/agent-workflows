@@ -49,6 +49,10 @@ steps:
     gate: tr '[:lower:]' '[:upper:]' < "$INPUT" | cmp - "$OUT"
 ```
 
+An `input:` block must declare both `required` and `description`—the
+description is the contract a calling agent reads, so validation rejects an
+input without one.
+
 ## 3. Validate and inspect the graph
 
 ```bash
@@ -76,6 +80,15 @@ revalidates the workflow.
 piw run review/steps.yaml --input "Review this change" --strict --json
 piw run review/steps.yaml --input-file request.md --strict --json
 ```
+
+Each run lands in `runs/<workflow>-<YYYYMMDD-HHMMSS>/` beside `steps.yaml`.
+The receipt's `run` field is that directory's name and is the `RUN_ID`
+accepted by `inspect` and `resume`.
+
+Dependency-ready nodes run **concurrently**—top-level `workers:` bounds the
+pool (default 4, maximum 16). `needs:` is the only serialization guarantee:
+nodes that must not overlap (for example commands mutating the same file) must
+be ordered with explicit dependencies.
 
 The input is copied into the run and fingerprinted. Each run freezes the
 workflow and records:
@@ -161,11 +174,63 @@ retries: 2
 retry_on: [model_error, schema_failed, gate_failed]
 retry_delay_seconds: 1
 retry_backoff: exponential
+retry_jitter: 0.2            # deterministic ±20% spread per step id + attempt
+retry_max_delay_seconds: 60  # backoff cap (default 300)
 timeout: 900
 ```
 
 Retry only declared failure classes. Commands and their child process groups
-are terminated when their timeout expires.
+are terminated when their timeout expires. Jitter is derived from the step id
+and attempt number, so a replayed run computes the same delays.
+
+## Judged improvement loops
+
+A step may attach an LLM judge that scores each candidate and iterates until a
+target score or the attempt budget is reached:
+
+```yaml
+  - id: draft
+    prompt: Write the release announcement for {input}.
+    gate: test -s "$OUT"
+    judge:
+      prompt: >-
+        Score this draft 0-10 for clarity.
+        Return JSON: {"score": N}. Candidate: {out}
+      score: 8         # minimum passing score (default 8)
+      max_iters: 3     # attempt budget (supersedes retries when larger)
+      keep_best: false # true keeps the highest-scoring rejected candidate
+```
+
+The judge must return JSON containing a numeric `"score"`; each verdict is
+stored as `<step>.judge<N>.md`. A judge never replaces the mechanical `gate`—
+the gate still runs on every attempt—and a below-target score is an ordinary
+retryable failure class (`judge_below_target`). Judge and schema settings are
+part of the cache key, so tightening either invalidates cached artifacts.
+
+## Final QA review
+
+A top-level `qa:` block runs one independent model review over all artifacts
+after every step has passed (and again during verification):
+
+```yaml
+qa:
+  prompt: >-
+    Review these artifacts for contradictions.
+    Return JSON: {"verdict": "pass"} or {"verdict": "fail"}.
+    {artifacts}
+```
+
+The report is written to `qa.md`; a `fail` verdict fails the run even though
+every individual gate passed.
+
+## Other schema keys
+
+- `workers:` (top-level, default 4, maximum 16)—concurrent dependency-ready
+  nodes; see [section 5](#5-run).
+- `cwd:` (top-level, default `.`)—execution directory for command nodes,
+  resolved relative to `steps.yaml`.
+- `preview:` (step)—declarative image paths for visual tooling; never affects
+  execution.
 
 ## Runtime choices
 

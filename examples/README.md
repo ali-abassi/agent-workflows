@@ -1,7 +1,8 @@
 # Examples
 
 All examples are ordinary `steps.yaml` files. Read them before running them;
-command nodes execute with your user permissions.
+command nodes execute with your user permissions. Runs are written to
+`examples/runs/`, which is gitignored—the demos never dirty the clone.
 
 ## Hello: zero-cost linear workflow
 
@@ -31,7 +32,9 @@ piw resume examples/recovery.steps.yaml RUN_ID --json
 ```
 
 Replace `RUN_ID` with the run id from the first receipt. Remove the approval
-file before repeating the demonstration.
+file before repeating the demonstration. Both `examples/runs/` and
+`examples/approvals/*.ok` are gitignored, so the checkpoint demo leaves no
+tracked changes behind.
 
 ## Agent review: isolated model node
 

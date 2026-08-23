@@ -4,6 +4,23 @@ All notable changes to Pi Graph Core are documented here.
 
 The project follows [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- Failed durable runs now print the documented `piw resume` remedy instead of
+  an internal `run_steps.py` invocation with undocumented flags.
+- A run missing its required `--input` now fails before creating a run
+  directory instead of leaving an empty `initialized` bundle behind.
+
+### Documentation
+
+- Documented concurrent node dispatch (`workers:`), the run directory
+  location, `judge`, `qa`, `cwd`, `preview`, `retry_jitter`,
+  `retry_max_delay_seconds`, and the `input.description` requirement.
+- Added a positioning comparison (LangGraph/Temporal/Prefect/Make) and a real
+  run-bundle evidence sample to the README.
+
 ## [0.1.0] - 2026-08-23
 
 Initial public alpha release.

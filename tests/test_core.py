@@ -69,12 +69,26 @@ class CoreContractTests(unittest.TestCase):
             self.assertNotEqual(first.returncode, 0)
             receipt = json.loads(first.stdout)
             self.assertEqual(receipt["steps"]["checkpoint"], "failed")
+            # The failure remedy must be the documented public surface, not
+            # an internal run_steps.py invocation.
+            self.assertIn("piw resume", receipt["error"])
+            self.assertNotIn("run_steps.py", receipt["error"])
             approvals = root / "approvals"
             approvals.mkdir()
             (approvals / "continue.ok").write_text("approved\n")
             resumed = run("resume", str(workflow), receipt["run"])
             self.assertEqual(resumed.returncode, 0, resumed.stdout + resumed.stderr)
             self.assertEqual(json.loads(resumed.stdout)["status"], "completed")
+
+    def test_missing_required_input_leaves_no_run_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            workflow = Path(raw) / "steps.yaml"
+            workflow.write_text((ROOT / "examples" / "hello.steps.yaml").read_text())
+            result = run("run", str(workflow), "--strict")
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("requires --input", json.loads(result.stdout)["error"])
+            self.assertFalse((Path(raw) / "runs").exists(),
+                             "a run without its required input must not create a run dir")
 
     def test_version_and_doctor_are_machine_readable(self) -> None:
         version = subprocess.run([sys.executable, str(CLI), "--version"],
