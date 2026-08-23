@@ -9,9 +9,11 @@ Before submitting a change:
 
 ```bash
 python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m pip install -e ".[dev]"
+.venv/bin/ruff check src scripts tests
 .venv/bin/python -m unittest discover -s tests -v
-.venv/bin/python -m py_compile scripts/*.py
+.venv/bin/python -m compileall -q src scripts
+./bin/piw doctor
 ./bin/piw validate examples/hello.steps.yaml --strict
 ./bin/piw run examples/hello.steps.yaml --input Ada --strict --json
 ```
@@ -19,3 +21,6 @@ python3 -m venv .venv
 Changes to the parser, runner, workflow schema, durable state, or trace contract
 need behavioral tests. Keep gates deterministic and never rely on a model's
 claim that a side effect or check succeeded.
+
+`main` is protected. Open a focused pull request and let every Linux/macOS,
+Python 3.10/3.14, wheel, and clean-install check pass before merging.

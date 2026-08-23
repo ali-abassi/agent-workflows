@@ -195,7 +195,6 @@ def run_detail(steps_path: Path, run_dir: Path, *, resolve_prompts: bool = True,
         raise WorkflowParseError(f"no such run: {run_dir}")
 
     graph = parsed_graph or parse_steps(steps_path)
-    by_id = {node["id"]: node for node in graph["nodes"]}
     safe_mode = read_file is not None
     reader = read_file or _read
 
@@ -494,7 +493,10 @@ def update_step(steps_path: Path, step_id: str, changes: dict[str, Any]) -> dict
     """
     try:
         from ruamel.yaml import YAML
-        from ruamel.yaml.scalarstring import DoubleQuotedScalarString, LiteralScalarString
+        from ruamel.yaml.scalarstring import (
+            DoubleQuotedScalarString,
+            LiteralScalarString,
+        )
     except ImportError as error:  # pragma: no cover - depends on environment
         raise WorkflowParseError(
             "editing needs ruamel.yaml (pip install ruamel.yaml); steps.yaml left untouched"

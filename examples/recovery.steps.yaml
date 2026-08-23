@@ -1,0 +1,16 @@
+version: 1
+workflow: recovery-core
+input:
+  required: true
+  description: One value held behind a human checkpoint
+steps:
+  - id: prepare
+    cmd: tr '[:lower:]' '[:upper:]' < "$INPUT"
+    gate: tr '[:lower:]' '[:upper:]' < "$INPUT" | cmp - "$OUT"
+  - id: checkpoint
+    needs: [prepare]
+    retries: 0
+    cmd: >-
+      test -f "$WORKFLOW_DIR/approvals/continue.ok" &&
+      cp "$RUN/prepare.md" "$OUT"
+    gate: cmp "$RUN/prepare.md" "$OUT"

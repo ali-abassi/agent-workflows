@@ -32,7 +32,7 @@ SNAPSHOT_NAME = "workflow.yaml"
 LOCK_NAME = "run.lock"
 OWNER_NAME = "run-owner.json"
 BOOTSTRAP_NAME = ".bundle-bootstrap.json"
-SCHEMA_DIR = Path(__file__).resolve().parent.parent / "schemas"
+SCHEMA_DIR = Path(__file__).resolve().parent / "schemas"
 RUN_STATUSES = {"initialized", "running", "interrupted", "failed", "completed"}
 STEP_STATUSES = {"pending", "running", "passed", "failed", "skipped", "cached", "interrupted"}
 

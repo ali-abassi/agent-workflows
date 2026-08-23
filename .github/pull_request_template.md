@@ -6,7 +6,8 @@ Describe the user-visible behavior and the deterministic contract affected.
 
 - [ ] Tests added or updated
 - [ ] `python -m unittest discover -s tests -v` passes
-- [ ] `python -m py_compile scripts/*.py` passes
+- [ ] `python -m compileall -q src scripts` passes
+- [ ] `piw doctor` passes
 - [ ] Example workflow validates and runs
 - [ ] No secrets, credentials, or sensitive run artifacts are included
 

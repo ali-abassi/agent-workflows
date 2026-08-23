@@ -1,13 +1,38 @@
 # Usage
 
-Pi Graph Core runs inspectable YAML workflows. Models generate content inside
-nodes; deterministic code owns dependencies, conditions, gates, retries,
+Pi Graph Core runs inspectable YAML workflows. Models may generate content
+inside nodes; deterministic code owns dependencies, conditions, gates, retries,
 durable state, and evidence.
 
-## 1. Create a workflow
+Every command supports `--help`. Commands that produce receipts accept
+`--json` for one machine-readable JSON document.
+
+## 1. Check the runtime
 
 ```bash
-./bin/piw create review --dir ./review
+piw --version
+piw doctor
+piw doctor --json
+```
+
+`shell-ready` means command workflows can run. `agent-ready` additionally means
+the optional Pi executable is available.
+
+## 2. Create a workflow
+
+The default template is deterministic and zero-cost:
+
+```bash
+piw create uppercase
+piw validate uppercase --strict
+piw run uppercase --input hello --strict --json
+```
+
+Create a model-backed template explicitly:
+
+```bash
+piw create review --template agent \
+  --model openai-codex/gpt-5.6-luna
 ```
 
 Or write `steps.yaml` directly:
@@ -21,62 +46,92 @@ input:
 steps:
   - id: transform
     cmd: tr '[:lower:]' '[:upper:]' < "$INPUT"
-    gate: grep -q '[A-Z]' "$OUT"
+    gate: tr '[:lower:]' '[:upper:]' < "$INPUT" | cmp - "$OUT"
 ```
 
-## 2. Validate before running
+## 3. Validate and inspect the graph
 
 ```bash
-./bin/piw validate review/steps.yaml --strict
-./bin/piw graph review/steps.yaml
+piw validate review/steps.yaml --strict
+piw graph review/steps.yaml
+piw graph review/steps.yaml --json
 ```
 
-Strict validation rejects weak existence-only gates on nondeterministic nodes.
+Validation never runs a node. Strict validation rejects weak gates on
+nondeterministic work, including gates that only check that output exists.
 
-## 3. Configure an agent node
+## 4. Configure one node
 
 ```bash
-./bin/piw configure review/steps.yaml work \
+piw configure review/steps.yaml work \
   --model openai-codex/gpt-5.6-sol --thinking high
 ```
 
-Workflow nodes may declare an isolated completion, an explicit tool allowlist,
-or `agent: true`. Tool selection is not an operating-system sandbox.
+Configure changes only the requested node fields, preserves YAML comments, and
+revalidates the workflow.
 
-## 4. Run
-
-```bash
-./bin/piw run review/steps.yaml --input "Review this change" --strict --json
-./bin/piw run review/steps.yaml --input-file request.md --strict --json
-```
-
-Each run freezes the workflow and input. Artifacts, state, trace, ledger, and
-per-step Git history live under the workflow's `runs/` directory.
-
-## 5. Inspect evidence
+## 5. Run
 
 ```bash
-./bin/piw inspect review/steps.yaml --json
-./bin/piw inspect review/steps.yaml RUN_ID --json
+piw run review/steps.yaml --input "Review this change" --strict --json
+piw run review/steps.yaml --input-file request.md --strict --json
 ```
 
-Do not infer success from the final model sentence. Inspect the step artifact,
-gate result, trace, and ledger.
+The input is copied into the run and fingerprinted. Each run freezes the
+workflow and records:
 
-## 6. Resume an interrupted run
+- `workflow.yaml` and `input.txt`—immutable execution boundary;
+- `manifest.json` and `state.json`—durable contract and current projection;
+- `trace.jsonl`—contiguous committed events;
+- `ledger.json`—model, time, token, and cost usage when reported;
+- `<step>.md` and `<step>.stderr`—artifacts and diagnostics;
+- `produced/`—files declared by `produces:`; and
+- local Git history—diffable step transitions unless explicitly disabled.
+
+## 6. Inspect evidence
 
 ```bash
-./bin/piw resume review/steps.yaml RUN_ID
+piw inspect review/steps.yaml --json
+piw inspect review/steps.yaml RUN_ID --json
 ```
 
-Resume verifies the frozen workflow and input and continues from the committed
-unfinished boundary. If the source workflow changed, it fails closed. Use
-`--force-drift` only after reviewing the change; the original snapshot remains
-in the run bundle.
+Do not infer success from a model's last sentence. Check state, artifacts, gate
+results, trace, and ledger.
 
-## Conditions and repairs
+## 7. Resume safely
 
-Use typed JSON output and `when` for deterministic routing:
+```bash
+piw resume review/steps.yaml RUN_ID --json
+```
+
+Resume verifies the frozen workflow and immutable input and continues from the
+committed unfinished boundary. A changed source workflow fails closed:
+
+```bash
+piw resume review/steps.yaml RUN_ID --force-drift --json
+```
+
+Use `--force-drift` only after reviewing the exact change. The original frozen
+workflow remains in the run bundle. Input drift cannot be forced.
+
+See [the recovery example](../examples/README.md#recovery-stop-approve-resume)
+for a file-backed human checkpoint.
+
+## Dependencies and placeholders
+
+`needs: [step-id]` declares dependencies explicitly. Without `needs`, a node
+depends on the previous listed node. References also create dependencies:
+
+- `{input}`—immutable run input;
+- `{prev}`—previous listed step artifact;
+- `{step.id}`—named prior artifact; and
+- `{run}`—run directory.
+
+Command nodes receive `$INPUT`, `$OUT`, `$RUN`, `$STEP`, and `$WORKFLOW_DIR`.
+
+## Typed routing
+
+Use JSON output plus `schema` and `when` for deterministic decisions:
 
 ```yaml
   - id: decide
@@ -94,9 +149,36 @@ Use typed JSON output and `when` for deterministic routing:
       path: /verdict
       value: repair
     prompt: Repair the reported issue from {step.decide}.
-    gate: test -s "$OUT"
+    gate: python3 -m json.tool "$OUT" >/dev/null
 ```
 
-See [`schemas/workflow.schema.json`](../schemas/workflow.schema.json) for the
-complete contract and [`examples/hello.steps.yaml`](../examples/hello.steps.yaml)
-for a zero-cost executable example.
+Code evaluates `when`; the model cannot choose which node the runner dispatches.
+
+## Retries and timeouts
+
+```yaml
+retries: 2
+retry_on: [model_error, schema_failed, gate_failed]
+retry_delay_seconds: 1
+retry_backoff: exponential
+timeout: 900
+```
+
+Retry only declared failure classes. Commands and their child process groups
+are terminated when their timeout expires.
+
+## Runtime choices
+
+Use the weakest runtime that can complete the node:
+
+1. `cmd:`—deterministic code, no model;
+2. `prompt:`—one isolated completion;
+3. `prompt:` plus `tools:`—explicit Pi tool allowlist; or
+4. `prompt:` plus `agent: true`—full Pi tool loop.
+
+`tools:` controls what Pi exposes to a model. It does not sandbox the shell,
+filesystem, process, network, or inherited environment.
+
+The complete authoring contract is
+[`src/pi_graph_core/schemas/workflow.schema.json`](../src/pi_graph_core/schemas/workflow.schema.json).
+Runnable examples are indexed in [`examples/README.md`](../examples/README.md).

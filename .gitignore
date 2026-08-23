@@ -4,6 +4,8 @@ __pycache__/
 cache/
 runs/
 .pytest_cache/
+.ruff_cache/
 build/
 dist/
 *.egg-info/
+examples/approvals/*.ok

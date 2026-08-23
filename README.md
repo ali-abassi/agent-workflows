@@ -1,119 +1,157 @@
 # Pi Graph Core
 
 [![CI](https://github.com/ali-abassi/pi-graph-core/actions/workflows/ci.yml/badge.svg)](https://github.com/ali-abassi/pi-graph-core/actions/workflows/ci.yml)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB.svg)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Deterministic control and evidence for nondeterministic agents—without the
-software-factory platform around it.
+**Make agent workflows fail visibly, recover safely, and leave proof.**
 
-Pi Graph Core gives an agent seven operations:
+Pi Graph Core is a small local workflow kernel for work that may involve
+nondeterministic models but still needs deterministic control. Models can work
+inside nodes; code owns dependency order, routing, gates, retries, immutable
+inputs, durable recovery, and run evidence.
 
 ```text
-create → validate → graph → run → inspect → configure → resume
+validated YAML → deterministic DAG → node output → code-owned gate
+                                      ↓ fail          ↓ pass
+                                 bounded retry    next eligible node
+                                                       ↓
+                                    state + trace + ledger + artifacts
 ```
 
-The model performs work inside nodes. Code owns dependencies, routing, gates,
-retries, immutable input, durable recovery, and run evidence.
+Core is deliberately not another all-in-one agent platform. It is the portable
+execution contract underneath one.
 
-## Install from source
+## Try it in two minutes
+
+Install the `piw` command from the v0.1.0 release:
 
 ```bash
-git clone https://github.com/ali-abassi/pi-graph-core.git
-cd pi-graph-core
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-
-./bin/piw validate examples/hello.steps.yaml --strict
-./bin/piw graph examples/hello.steps.yaml
-./bin/piw run examples/hello.steps.yaml --input Ada --json
-./bin/piw inspect examples/hello.steps.yaml --json
+python3 -m pip install \
+  "git+https://github.com/ali-abassi/pi-graph-core.git@v0.1.0"
+piw doctor
 ```
 
-`./bin/piw` automatically uses the repository's `.venv`. To select another
-interpreter, set `PI_GRAPH_CORE_PYTHON=/path/to/python`.
-
-You can also install the command into an existing Python environment:
+Create and run a zero-cost workflow—no model or API key required:
 
 ```bash
-python3 -m pip install .
-piw --help
+piw create hello
+piw validate hello --strict
+piw graph hello
+piw run hello --input Ada --strict --json
+piw inspect hello --json
 ```
 
-See [Setup](docs/SETUP.md) for prerequisites and troubleshooting, and
-[Usage](docs/USAGE.md) for the complete author → validate → run → inspect →
-resume lifecycle.
+The run receipt includes a durable run id and every step's terminal status.
+The run directory contains the frozen workflow and input, state projection,
+append-only trace, ledger, artifacts, logs, and per-step Git history.
 
-Shell-only workflows need no model runtime. Model, tool, and agent nodes use
+Prefer an isolated CLI install? Use
+[`pipx`](https://pipx.pypa.io/stable/installation/):
+
+```bash
+pipx install "git+https://github.com/ali-abassi/pi-graph-core.git@v0.1.0"
+```
+
+For a source checkout, editable development setup, or troubleshooting, follow
+the [setup guide](docs/SETUP.md).
+
+## What it gives you
+
+- A validated YAML DAG with explicit and inferred dependencies.
+- Four node runtimes: shell command, isolated completion, allowlisted tools,
+  and full agent loop.
+- Typed JSON output contracts and code-owned conditional routing.
+- Mechanical gates that check artifacts or side effects—not model confidence.
+- Classified, bounded retries with fixed or exponential delay.
+- Immutable per-run input and frozen workflow fingerprints.
+- Atomic state, contiguous JSONL trace, one-writer locking, and crash recovery.
+- Content-addressed cache, per-step ledger, and inspectable Git history.
+- `create`, `validate`, `graph`, `run`, `inspect`, `resume`, `configure`, and
+  `doctor` commands with machine-readable JSON receipts.
+
+See the [usage guide](docs/USAGE.md), [examples](examples/README.md), and the
+published [workflow schema](src/pi_graph_core/schemas/workflow.schema.json).
+
+## Add model and agent nodes
+
+Shell workflows work immediately. Model, tool, and agent nodes use
 [Pi](https://github.com/earendil-works/pi):
 
 ```bash
 npm install -g @earendil-works/pi-coding-agent
-pi  # /login once
+pi  # authenticate once
+
+piw create review --template agent \
+  --model openai-codex/gpt-5.6-luna
+piw run review --input-file request.md --strict --json
 ```
 
-## Author and configure
+Each model call is isolated and pins its model and thinking level. Agent nodes
+can receive explicit tools, but tool selection is routing—not operating-system
+sandboxing.
 
-```bash
-./bin/piw create review --dir ./review
-./bin/piw validate review/steps.yaml
-./bin/piw configure review/steps.yaml work --model openai-codex/gpt-5.6-sol --thinking high
-./bin/piw run review/steps.yaml --input-file task.md --strict
-./bin/piw inspect review/steps.yaml RUN_ID
-./bin/piw resume review/steps.yaml RUN_ID
-```
-
-## Workflow
+## Minimal workflow
 
 ```yaml
 version: 1
-workflow: review
-model: openai-codex/gpt-5.6-luna
-thinking: low
+workflow: uppercase
 input:
   required: true
-  description: One review request
+  description: One immutable string
 steps:
-  - id: analyze
-    prompt: |
-      Analyze this untrusted request:
-      {input}
-    schema:
-      summary: string
-      risks: array
-    gate: python3 -c "import json,os; x=json.load(open(os.environ['OUT'])); assert x['summary']"
-  - id: verify
-    needs: [analyze]
-    cmd: python3 -m json.tool "$RUN/analyze.md"
-    gate: python3 -m json.tool "$OUT" >/dev/null
+  - id: transform
+    cmd: tr '[:lower:]' '[:upper:]' < "$INPUT"
+    gate: tr '[:lower:]' '[:upper:]' < "$INPUT" | cmp - "$OUT"
+  - id: report
+    needs: [transform]
+    cmd: printf 'Result: %s\n' "$(cat "$RUN/transform.md")"
+    gate: grep -q '^Result: ' "$OUT"
 ```
 
-Nodes support commands, isolated model calls, explicit tools, full agents,
-dependencies, typed routing, retries, judges, and final QA. Every run freezes
-the workflow and input, writes an atomic state projection and committed trace,
-and can resume from its last committed boundary.
+`piw validate steps.yaml --strict` checks the contract without running a model
+or command. `piw graph steps.yaml` prints the exact dependency structure the
+runner will use.
 
-## Deliberately not included
+## Evidence, not vibes
 
-Core does not include Studio, batch processing, evaluations, optimization,
-schedulers, action catalogs, or reports. Those live in the full
-[Pi Graph](https://github.com/ali-abassi/pi-graph) platform.
+The test suite exercises atomic-write failures, bootstrap recovery, one-writer
+locking, concurrent transitions, torn traces, workflow drift, immutable input,
+branch skips, SIGKILL recovery, and surgical resume. CI runs on Linux and macOS
+with Python 3.10 and 3.14, builds the wheel, installs it into a clean
+environment, and executes the installed command.
 
-There is one execution contract: Core's parser, runner, bundle writer, and
-workflow schema are derived from Pi Graph. Core must pass conformance tests
-before accepting an upstream kernel update.
+That evidence supports the kernel behavior tested here. It is not a claim that
+arbitrary workflows are safe or that model output is deterministic.
 
-## Security
+## Deliberate boundary
 
-Workflows execute with the invoking user's permissions. `tools:` is routing,
-not an operating-system sandbox. Review untrusted workflows and use a container
-when filesystem, process, network, or credential isolation matters.
+Core does **not** include Studio, batch processing, evaluations, optimization,
+scheduling, action catalogs, hosted workers, or the software-factory product.
+Those live in the full [Pi Graph](https://github.com/ali-abassi/pi-graph)
+platform.
 
-Never commit secrets to workflow files. Commands and agents inherit the
-environment of the `piw` process. See [SECURITY.md](SECURITY.md) for the threat
-boundary and private vulnerability-reporting process.
+Core currently supports macOS and Linux with Python 3.10+. It is alpha software
+and executes workflow commands with the invoking user's permissions. Review
+third-party workflows and use a container or isolated account when filesystem,
+process, network, or credential isolation matters.
 
-## Origin
+Read [SECURITY.md](SECURITY.md) before running untrusted workflows. Never place
+credentials in workflow files, prompts, command arguments, or committed run
+artifacts.
 
-Pi Graph Core is a reduced sibling of
-[ali-abassi/pi-graph](https://github.com/ali-abassi/pi-graph), extracted from
-the durable runner at commit `6dabc0d`. Both projects are MIT licensed.
+## Project
+
+- [Setup](docs/SETUP.md)
+- [Usage](docs/USAGE.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Examples](examples/README.md)
+- [Changelog](CHANGELOG.md)
+- [Security policy](SECURITY.md)
+- [Contributing](CONTRIBUTING.md)
+- [MIT license](LICENSE)
+
+Pi Graph Core is the reduced, public kernel of
+[ali-abassi/pi-graph](https://github.com/ali-abassi/pi-graph). The projects
+share the same control-flow philosophy: models do work; code decides whether
+the work may advance.
