@@ -1,105 +1,59 @@
-# Agent Workflows
+<div align="center">
+
+# Give your AI agents a checklist they can't skip
+
+**You write the steps in plain YAML. Deterministic code runs them in order,
+tests every output, retries what fails, and resumes exactly where it stopped —
+leaving proof of everything in a plain folder.**
 
 [![CI](https://github.com/ali-abassi/agent-workflows/actions/workflows/ci.yml/badge.svg)](https://github.com/ali-abassi/agent-workflows/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/ali-abassi/agent-workflows?color=3fb950)](https://github.com/ali-abassi/agent-workflows/releases)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB.svg)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**Make agent workflows fail visibly, recover safely, and leave proof.**
+[Quickstart](#-try-it-in-two-minutes) ·
+[How it works](#-how-it-works) ·
+[Commands](#-which-command-when) ·
+[Examples](examples/README.md) ·
+[Docs](docs/USAGE.md)
 
-Agent Workflows is a small local workflow kernel for work that may involve
-nondeterministic models but still needs deterministic control. Models can work
-inside nodes; code owns dependency order, routing, gates, retries, immutable
-inputs, durable recovery, and run evidence.
+<img src="assets/hero.svg" alt="steps.yaml goes into a deterministic runner; each step executes (shell, Claude, Codex, or Pi), a real gate tests the output, failures retry then stop loudly, piw resume continues from the same step, and every run leaves a folder of proof" width="100%">
 
-```text
-validated YAML → deterministic DAG → node output → code-owned gate
-                                      ↓ fail          ↓ pass
-                                 bounded retry    next eligible node
-                                                       ↓
-                                    state + trace + ledger + artifacts
-```
+</div>
 
-Core is deliberately not another all-in-one agent platform. It is the portable
-execution contract underneath one.
+## 🤔 Why does this exist?
 
-## In plain words
+AI agents are great at *doing* work and unreliable at *following plans*:
 
-- **What it does.** You write your steps in one small text file
-  (`steps.yaml`)—a numbered checklist. `piw` runs the steps in the right
-  order, tests each step's output before moving on, retries what failed, and
-  stops where a human must decide. If it stops, `piw resume` picks up exactly
-  where it left off.
-- **Why that matters for AI work.** Agents sometimes skip steps or declare
-  unfinished work done. Here a model may *write* a step's content, but plain
-  code decides what runs next, and a real test (the `gate`) decides pass or
-  fail—a model cannot talk its way past it.
-- **What you get afterwards.** Every run is an ordinary folder holding the
-  exact input, every step's output, what each step cost, and a full timeline.
-  No server, no database, no dashboard.
+- they **skip steps** when the context gets long;
+- they **declare unfinished work done** — confidence is not a test;
+- they **lose everything** when a step fails halfway through.
 
-## When to use it
+Agent Workflows flips who is in charge. A model may write a step's *content*,
+but plain code decides **what runs next**, and a real test — the **gate**, an
+ordinary shell command — decides **pass or fail**. An agent cannot talk its
+way past `exit 1`.
 
-Reach for Agent Workflows when:
-
-- a job has **more than one step** and skipping or fudging a step is not
-  acceptable (releases, migrations, content pipelines, review chains);
-- a human must **approve a checkpoint** midway, and the job should stop and
-  later resume exactly there;
-- you need to show **what ran, what it produced, and what it cost**.
-
-Skip it when a single command or a one-off prompt does the job, or when you
-need org-wide scheduling across machines (see the comparison below).
-
-## Works with Claude Code, Codex, and Pi
-
-Any agent — or any human — can use this in two roles, and both are exercised
-by the shipped examples:
-
-1. **As the operator.** `piw` is a plain CLI with `--json` receipts, so
-   Claude Code, Codex, Pi, or a shell script can create, validate, run,
-   inspect, and resume workflows.
-2. **As a node runtime.** A `cmd:` node wraps any non-interactive agent
-   command, and the gate judges its output like any other node
-   ([examples/any-agent.steps.yaml](examples/any-agent.steps.yaml) runs
-   Claude Code via `claude -p` and Codex via `codex exec` side by side).
-   Native `prompt:` nodes run through the Pi CLI with per-step model,
-   thinking, schema, and tool controls.
-
-## Which command, when
-
-| You want to | Run |
-|---|---|
-| Start a new workflow file | `piw create NAME` |
-| Check the file is valid (free, nothing executes) | `piw validate NAME --strict` |
-| See the step order before running | `piw graph NAME` |
-| Execute the workflow | `piw run NAME --input "..." --strict --json` |
-| See what a run did, produced, and cost | `piw inspect NAME --json` |
-| Continue a stopped or failed run | `piw resume NAME RUN_ID --json` |
-| Check your machine is ready | `piw doctor` |
-
-## Try it in two minutes
-
-Install `piw` (the **p**i **w**orkflow command) from the v0.2.0 release:
+## ⚡ Try it in two minutes
 
 ```bash
-python3 -m pip install \
-  "git+https://github.com/ali-abassi/agent-workflows.git@v0.2.0"
-piw doctor
+python3 -m pip install "git+https://github.com/ali-abassi/agent-workflows.git@v0.2.0"
+piw doctor          # → status: agent-ready
 ```
 
-Create and run a zero-cost workflow—no model or API key required:
+Create and run your first workflow — no model, no API key, zero cost:
 
 ```bash
 piw create hello
-piw validate hello --strict
-piw graph hello
 piw run hello --input Ada --strict --json
-piw inspect hello --json
 ```
 
-The run receipt includes a durable run id and every step's terminal status.
-Every run lands in `runs/<workflow>-<timestamp>/` next to `steps.yaml` — an
-ordinary directory, readable without a database:
+```json
+{"ok": true, "run": "hello-20260823-232621", "status": "completed",
+ "steps": {"normalize": "passed", "result": "passed"}}
+```
+
+That receipt is real, and so is the folder behind it:
 
 ```text
 $ ls hello/runs/hello-20260823-232621/
@@ -107,63 +61,42 @@ input.txt     log.md         normalize.md    result.md  state.json   workflow.ya
 ledger.json   manifest.json  run-owner.json  run.lock   trace.jsonl  .git/
 ```
 
-It holds the frozen workflow and input, the state projection, an append-only
-trace, per-step artifacts, diffable Git history, and a ledger that records what
-each node actually cost:
+The frozen input, every step's output, a full timeline, git history of the
+run — and a ledger of what each step actually cost:
 
 ```json
 {"id": "analyze", "model": "openai-codex/gpt-5.6-luna", "attempts": 1,
  "passed": true, "seconds": 8.3, "input": 5288, "output": 168, "cost": 0.0012592}
 ```
 
-Prefer an isolated CLI install? Use
-[`pipx`](https://pipx.pypa.io/stable/installation/):
+Prefer an isolated install? `pipx install "git+https://github.com/ali-abassi/agent-workflows.git@v0.2.0"` —
+or see the [setup guide](docs/SETUP.md) for source checkouts and troubleshooting.
 
-```bash
-pipx install "git+https://github.com/ali-abassi/agent-workflows.git@v0.2.0"
+## 🧠 How it works
+
+```mermaid
+flowchart LR
+    A["📄 steps.yaml"] -->|piw run| B["deterministic runner"]
+    B --> C["step executes<br/>shell · claude · codex · pi"]
+    C --> D{"gate:<br/>a real test"}
+    D -->|pass| E["next eligible step"]
+    D -->|fail| F["bounded retry"]
+    F --> C
+    F -->|budget spent| G["run stops loudly"]
+    G -->|fix cause, piw resume| C
+    E --> H[("runs/ folder<br/>of proof")]
 ```
 
-For a source checkout, editable development setup, or troubleshooting, follow
-the [setup guide](docs/SETUP.md).
+1. **You describe the steps** — each with a command (or prompt), what it needs,
+   and a gate that proves it worked.
+2. **Code runs the graph** — dependency order, typed routing, bounded retries,
+   timeouts, and parallel dispatch of independent steps are all deterministic.
+3. **Every output faces its gate** — a shell command that checks the artifact,
+   not the model's confidence.
+4. **Nothing is lost** — a failed run stops with state intact; `piw resume`
+   verifies the workflow hasn't drifted and continues from the exact step.
 
-## What it gives you
-
-- A validated YAML DAG with explicit and inferred dependencies.
-- Four node runtimes: shell command, isolated completion, allowlisted tools,
-  and full agent loop.
-- Typed JSON output contracts and code-owned conditional routing.
-- Mechanical gates that check artifacts or side effects—not model confidence.
-- Classified, bounded retries with fixed or exponential delay.
-- Concurrent dispatch of dependency-ready nodes (`workers:`, default 4);
-  `needs:` is the serialization guarantee.
-- Immutable per-run input and frozen workflow fingerprints.
-- Atomic state, contiguous JSONL trace, one-writer locking, and crash recovery.
-- Content-addressed cache, per-step ledger, and inspectable Git history.
-- `create`, `validate`, `graph`, `run`, `inspect`, `resume`, `configure`, and
-  `doctor` commands with machine-readable JSON receipts.
-
-See the [usage guide](docs/USAGE.md), [examples](examples/README.md), and the
-published [workflow schema](src/agent_workflows/schemas/workflow.schema.json).
-
-## Add model and agent nodes
-
-Shell workflows work immediately. Model, tool, and agent nodes use
-[Pi](https://github.com/earendil-works/pi):
-
-```bash
-npm install -g @earendil-works/pi-coding-agent
-pi  # authenticate once
-
-piw create review --template agent \
-  --model openai-codex/gpt-5.6-luna
-piw run review --input-file request.md --strict --json
-```
-
-Each model call is isolated and pins its model and thinking level. Agent nodes
-can receive explicit tools, but tool selection is routing—not operating-system
-sandboxing.
-
-## Minimal workflow
+A complete workflow is this small:
 
 ```yaml
 version: 1
@@ -181,22 +114,65 @@ steps:
     gate: grep -q '^Result: ' "$OUT"
 ```
 
-`piw validate steps.yaml --strict` checks the contract without running a model
-or command. `piw graph steps.yaml` prints the exact dependency structure the
-runner will use.
+## 🧭 Which command, when
 
-## Evidence, not vibes
+| You want to | Run |
+|---|---|
+| Start a new workflow file | `piw create NAME` |
+| Check the file is valid (free, nothing executes) | `piw validate NAME --strict` |
+| See the step order before running | `piw graph NAME` |
+| Execute the workflow | `piw run NAME --input "..." --strict --json` |
+| See what a run did, produced, and cost | `piw inspect NAME --json` |
+| Continue a stopped or failed run | `piw resume NAME RUN_ID --json` |
+| Check your machine is ready | `piw doctor` |
 
-The test suite exercises atomic-write failures, bootstrap recovery, one-writer
-locking, concurrent transitions, torn traces, workflow drift, immutable input,
-branch skips, SIGKILL recovery, and surgical resume. CI runs on Linux and macOS
-with Python 3.10 and 3.14, builds the wheel, installs it into a clean
-environment, and executes the installed command.
+Every command has `--help`; every receipt is available as JSON, so agents can
+operate `piw` as easily as humans.
 
-That evidence supports the kernel behavior tested here. It is not a claim that
-arbitrary workflows are safe or that model output is deterministic.
+## 🤝 Works with Claude Code, Codex, and Pi
 
-## Why not LangGraph, Temporal, or Make?
+Any agent — or any human — can use this in two roles:
+
+1. **As the operator.** `piw` is a plain CLI with `--json` receipts, so Claude
+   Code, Codex, Pi, or a shell script can create, validate, run, inspect, and
+   resume workflows.
+2. **As a node runtime.** A `cmd:` node wraps any non-interactive agent
+   command, and the gate judges its output like any other node. Native
+   `prompt:` nodes run through the [Pi](https://github.com/earendil-works/pi)
+   CLI with per-step model, thinking, schema, and tool pins.
+
+[`examples/any-agent.steps.yaml`](examples/any-agent.steps.yaml) runs Claude
+Code and Codex side by side, gated identically:
+
+```json
+{"ok": true, "status": "completed",
+ "steps": {"claude-code": "passed", "codex": "passed", "combine": "passed"}}
+```
+
+To add native model nodes:
+
+```bash
+npm install -g @earendil-works/pi-coding-agent
+pi                                # authenticate once
+piw create review --template agent --model openai-codex/gpt-5.6-luna
+piw run review --input-file request.md --strict --json
+```
+
+Model calls are isolated and pin their model and thinking level. Tool
+selection is routing — not operating-system sandboxing.
+
+## 📌 When to use it (and when not)
+
+Reach for Agent Workflows when:
+
+- a job has **more than one step** and skipping or fudging a step is not
+  acceptable — releases, migrations, content pipelines, review chains;
+- a human must **approve a checkpoint** midway, and the job should stop and
+  later resume exactly there;
+- you need to show **what ran, what it produced, and what it cost**.
+
+Skip it when a single command or one-off prompt does the job — or when you
+need something on this list:
 
 | If you need | Use |
 |---|---|
@@ -205,39 +181,58 @@ arbitrary workflows are safe or that model output is deterministic.
 | File-timestamp incremental builds | Make |
 | A local, auditable run contract for agent work | **Agent Workflows** |
 
-Core's bet is auditability over throughput: gates are shell commands, state is
-a readable directory, resume is fingerprint-verified, and there is no server,
-daemon, or database — a run is a directory you can `ls`, `diff`, and commit.
+The bet is auditability over throughput: gates are shell commands, state is a
+readable directory, resume is fingerprint-verified — no server, no daemon, no
+database. A run is a folder you can `ls`, `diff`, and commit.
 
-## Deliberate boundary
+## 🔩 Under the hood
 
-Core does **not** include Studio, batch processing, evaluations, optimization,
-scheduling, action catalogs, hosted worker fleets, or the software-factory
-product.
-Those live in the full [Pi Graph](https://github.com/ali-abassi/pi-graph)
-platform.
+- Validated YAML DAG with explicit and inferred dependencies.
+- Four node runtimes: shell command, isolated completion, allowlisted tools,
+  full agent loop.
+- Typed JSON output contracts and code-owned conditional routing (`when:`).
+- Mechanical gates that check artifacts or side effects — not model confidence.
+- Classified, bounded retries with fixed or exponential delay and
+  deterministic jitter.
+- Concurrent dispatch of dependency-ready nodes (`workers:`, default 4);
+  `needs:` is the serialization guarantee.
+- Immutable per-run input and frozen workflow fingerprints (drift is refused).
+- Atomic state, contiguous JSONL trace, one-writer locking, crash recovery.
+- Content-addressed cache, per-step cost ledger, inspectable Git history.
+- Optional per-step LLM `judge:` loops and a final independent `qa:` review.
 
-Core currently supports macOS and Linux with Python 3.10+. It is alpha software
-and executes workflow commands with the invoking user's permissions. Review
-third-party workflows and use a container or isolated account when filesystem,
-process, network, or credential isolation matters.
+Full reference: [usage guide](docs/USAGE.md) ·
+[architecture](docs/ARCHITECTURE.md) ·
+[workflow schema](src/agent_workflows/schemas/workflow.schema.json).
 
-Read [SECURITY.md](SECURITY.md) before running untrusted workflows. Never place
-credentials in workflow files, prompts, command arguments, or committed run
-artifacts.
+## 🧪 Evidence, not vibes
 
-## Project
+The test suite exercises atomic-write failures, bootstrap recovery, one-writer
+locking, concurrent transitions, torn traces, workflow drift, immutable input,
+branch skips, SIGKILL recovery, and surgical resume. CI runs on Linux and
+macOS with Python 3.10 and 3.14, builds the wheel, installs it into a clean
+environment, and executes the installed command.
 
-- [Setup](docs/SETUP.md)
-- [Usage](docs/USAGE.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Examples](examples/README.md)
-- [Changelog](CHANGELOG.md)
-- [Security policy](SECURITY.md)
-- [Contributing](CONTRIBUTING.md)
-- [MIT license](LICENSE)
+That evidence supports the kernel behavior tested here. It is not a claim that
+arbitrary workflows are safe or that model output is deterministic.
 
-Agent Workflows is the reduced, public kernel of
-[ali-abassi/pi-graph](https://github.com/ali-abassi/pi-graph). The projects
-share the same control-flow philosophy: models do work; code decides whether
-the work may advance.
+## 🚧 Status and boundary
+
+Alpha software; macOS and Linux with Python 3.10+. Workflow commands execute
+with **your user permissions** — review third-party workflows and use a
+container or isolated account when filesystem, process, network, or credential
+isolation matters. Read [SECURITY.md](SECURITY.md) before running untrusted
+workflows, and never place credentials in workflow files, prompts, command
+arguments, or committed run artifacts.
+
+This repo is the reduced, public kernel of
+[ali-abassi/pi-graph](https://github.com/ali-abassi/pi-graph); Studio, batch
+processing, evaluations, scheduling, and hosted worker fleets live there. The
+projects share the `steps.yaml` contract.
+
+## 📚 Project
+
+[Setup](docs/SETUP.md) · [Usage](docs/USAGE.md) ·
+[Architecture](docs/ARCHITECTURE.md) · [Examples](examples/README.md) ·
+[Changelog](CHANGELOG.md) · [Security](SECURITY.md) ·
+[Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
