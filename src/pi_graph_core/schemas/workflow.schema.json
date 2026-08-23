@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/ali-abassi/pi-graph-core/main/schemas/workflow.schema.json",
+  "$id": "https://raw.githubusercontent.com/ali-abassi/pi-graph-core/main/src/pi_graph_core/schemas/workflow.schema.json",
   "title": "Pi Graph v1",
   "description": "The portable steps.yaml contract executed by Pi Graph.",
   "type": "object",

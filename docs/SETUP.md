@@ -4,60 +4,113 @@
 
 - macOS or Linux
 - Python 3.10 or newer
-- Git, for per-step run history
-- Bash, for command steps and gates
-- Pi only when a workflow uses model, tool, or agent nodes
+- Bash for command steps and gates
+- Git for installation from GitHub and optional per-step history
+- Pi only for model, tool, or agent nodes
 
-Shell-only workflows do not require an API key or model provider.
+Shell-only workflows require no API key or model provider.
 
-## Repository installation
+## Install the released command
+
+Use an isolated [`pipx`](https://pipx.pypa.io/stable/installation/) environment
+when available:
+
+```bash
+pipx install "git+https://github.com/ali-abassi/pi-graph-core.git@v0.1.0"
+piw doctor
+```
+
+Or install into your current Python environment:
+
+```bash
+python3 -m pip install \
+  "git+https://github.com/ali-abassi/pi-graph-core.git@v0.1.0"
+piw doctor
+```
+
+Uninstall with the same package manager:
+
+```bash
+pipx uninstall pi-graph-core
+# or: python3 -m pip uninstall pi-graph-core
+```
+
+## Work from a source checkout
 
 ```bash
 git clone https://github.com/ali-abassi/pi-graph-core.git
 cd pi-graph-core
 python3 -m venv .venv
 .venv/bin/python -m pip install --upgrade pip
-.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m pip install -e ".[dev]"
+./bin/piw doctor
 ./bin/piw validate examples/hello.steps.yaml --strict
 ./bin/piw run examples/hello.steps.yaml --input Ada --strict --json
 ```
 
-The repository wrapper automatically selects `.venv/bin/python`. Override it
-when needed:
+`./bin/piw` automatically selects the checkout's `.venv`. Override it only when
+you intentionally installed the package into another interpreter:
 
 ```bash
-PI_GRAPH_CORE_PYTHON=/path/to/python ./bin/piw --help
+PI_GRAPH_CORE_PYTHON=/path/to/python ./bin/piw doctor
 ```
 
-## Installed command
+If the wrapper reports that Core is not installed, run the editable-install
+command shown above. It does not silently fall back to an unrelated system
+installation.
 
-```bash
-python3 -m pip install .
-piw --help
-```
-
-## Model workflows
+## Enable model workflows
 
 Install and authenticate Pi separately:
 
 ```bash
 npm install -g @earendil-works/pi-coding-agent
 pi
+piw doctor
 ```
 
-Pi Graph Core does not read provider keys itself. Pi handles provider
-authentication. Do not place credentials in `steps.yaml`, prompts, command
+`piw doctor` reports `agent-ready` when Pi is available and `shell-ready` when
+only the deterministic command runtime is available. A missing Pi installation
+does not block shell workflows.
+
+Pi Graph Core does not read provider credentials directly. Pi owns provider
+authentication. Do not put credentials in `steps.yaml`, prompts, command
 arguments, committed run bundles, or repository files.
 
-## Verify the checkout
+## Verify a source checkout
 
 ```bash
+.venv/bin/ruff check src scripts tests
 .venv/bin/python -m unittest discover -s tests -v
-.venv/bin/python -m py_compile scripts/*.py
-./bin/piw validate examples/hello.steps.yaml --strict
+.venv/bin/python -m compileall -q src scripts
+./bin/piw doctor
+for workflow in examples/*.steps.yaml; do
+  ./bin/piw validate "$workflow" --strict
+done
 ./bin/piw run examples/hello.steps.yaml --input Ada --strict --json
 ```
 
-If `yaml` or `jsonschema` cannot be imported, dependencies were installed into
-a different interpreter. Use the repository wrapper or set
-`PI_GRAPH_CORE_PYTHON` explicitly.
+## Common problems
+
+### `piw: command not found`
+
+The environment's executable directory is not on `PATH`, or the package is not
+installed there. Run `python3 -m pip show pi-graph-core` with the same Python you
+used during installation. `pipx ensurepath` configures the common pipx path.
+
+### `pi` is optional or missing
+
+Shell workflows still work. Install Pi only when the workflow contains prompt,
+tool, or agent nodes.
+
+### A workflow fails strict validation
+
+Read both `errors` and `advice`. Strict mode rejects model-backed nodes with no
+meaningful gate and gates that merely assert a transcript exists. Fix the
+contract rather than disabling strict mode for unattended work.
+
+### A run refuses to resume
+
+Resume verifies the frozen workflow and immutable input. Review source drift
+before using `--force-drift`; input drift is never forceable. Inspect the run
+first with `piw inspect WORKFLOW RUN_ID --json`.

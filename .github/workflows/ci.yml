@@ -19,13 +19,23 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: python -m venv .venv
-      - run: .venv/bin/python -m pip install -r requirements.txt
+      - run: .venv/bin/python -m pip install -e ".[dev]"
+      - run: .venv/bin/ruff check src scripts tests
       - run: .venv/bin/python -m unittest discover -s tests -v
-      - run: .venv/bin/python -m py_compile scripts/*.py
-      - run: ./bin/piw validate examples/hello.steps.yaml --strict
+      - run: .venv/bin/python -m compileall -q src scripts
+      - run: ./bin/piw doctor
+      - run: for workflow in examples/*.steps.yaml; do ./bin/piw validate "$workflow" --strict; done
       - run: ./bin/piw run examples/hello.steps.yaml --input Ada --strict --json
       - run: .venv/bin/python -m pip wheel . --no-deps -w dist
       - run: .venv/bin/python scripts/check_wheel.py dist/*.whl
       - run: python -m venv .install-test
       - run: .install-test/bin/python -m pip install dist/*.whl
-      - run: .install-test/bin/piw validate examples/hello.steps.yaml --strict
+      - run: .install-test/bin/python -m pip check
+      - run: .install-test/bin/piw doctor
+      - run: |
+          work=$(mktemp -d)
+          cd "$work"
+          "$GITHUB_WORKSPACE/.install-test/bin/piw" create hello --json
+          "$GITHUB_WORKSPACE/.install-test/bin/piw" validate hello --strict --json
+          "$GITHUB_WORKSPACE/.install-test/bin/piw" run hello --input Ada --strict --json
+          "$GITHUB_WORKSPACE/.install-test/bin/piw" inspect hello --json

@@ -1,0 +1,25 @@
+version: 1
+workflow: branching-core
+input:
+  required: true
+  description: Prefix urgent work with an exclamation mark
+steps:
+  - id: classify
+    cmd: >-
+      python3 -c 'import json,sys; text=open(sys.argv[1]).read().strip();
+      print(json.dumps({"priority":"high" if text.startswith("!") else "normal"}))'
+      "$INPUT"
+    gate: >-
+      python3 -c 'import json,os; value=json.load(open(os.environ["OUT"]));
+      assert value["priority"] in ("high","normal")'
+  - id: escalate
+    needs: [classify]
+    from: classify
+    when:
+      op: equals
+      path: /priority
+      value: high
+    cmd: >-
+      printf 'Escalated: %s\n' "$(cat "$INPUT")"
+    gate: >-
+      grep -q '^Escalated: !' "$OUT"

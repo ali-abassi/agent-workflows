@@ -6,16 +6,15 @@ import sys
 import zipfile
 from pathlib import Path
 
-
 wheel = Path(sys.argv[1])
 names = set(zipfile.ZipFile(wheel).namelist())
 required_suffixes = {
-    "data/scripts/piw.py",
-    "data/scripts/run_steps.py",
-    "data/scripts/run_bundle.py",
-    "data/scripts/graph.py",
-    "data/schemas/workflow.schema.json",
-    "data/scripts/piw",
+    "pi_graph_core/cli.py",
+    "pi_graph_core/run_steps.py",
+    "pi_graph_core/run_bundle.py",
+    "pi_graph_core/graph.py",
+    "pi_graph_core/schemas/workflow.schema.json",
+    ".dist-info/entry_points.txt",
 }
 missing = sorted(suffix for suffix in required_suffixes
                  if not any(name.endswith(suffix) for name in names))

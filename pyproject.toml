@@ -1,19 +1,18 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "pi-graph-core"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Deterministic workflow creation, execution, recovery, and evidence for agents"
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
 authors = [{ name = "Ali Abassi" }]
 requires-python = ">=3.10"
 keywords = ["agents", "workflows", "automation", "deterministic", "evidence"]
 classifiers = [
   "Development Status :: 3 - Alpha",
-  "License :: OSI Approved :: MIT License",
   "Operating System :: MacOS",
   "Operating System :: POSIX :: Linux",
   "Programming Language :: Python :: 3",
@@ -29,26 +28,33 @@ dependencies = [
   "jsonschema>=4.23,<5",
 ]
 
+[project.optional-dependencies]
+dev = [
+  "build>=1.3,<2",
+  "ruff>=0.14,<0.15",
+  "twine>=6,<8",
+]
+
 [project.urls]
 Homepage = "https://github.com/ali-abassi/pi-graph-core"
 Repository = "https://github.com/ali-abassi/pi-graph-core"
 Issues = "https://github.com/ali-abassi/pi-graph-core/issues"
 Documentation = "https://github.com/ali-abassi/pi-graph-core#readme"
 
-[tool.setuptools]
-py-modules = []
-script-files = ["bin/piw"]
+[project.scripts]
+piw = "pi_graph_core.cli:main"
 
-[tool.setuptools.data-files]
-scripts = [
-  "scripts/graph.py",
-  "scripts/piw.py",
-  "scripts/run_bundle.py",
-  "scripts/run_steps.py",
-]
-schemas = [
-  "schemas/run-bundle.schema.json",
-  "schemas/run-state.schema.json",
-  "schemas/trace-event.schema.json",
-  "schemas/workflow.schema.json",
-]
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+pi_graph_core = ["schemas/*.json"]
+
+[tool.setuptools.dynamic]
+version = {attr = "pi_graph_core.__version__"}
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "W605"]

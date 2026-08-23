@@ -10,4 +10,9 @@ elif [ -x "$(dirname -- "$0")/python" ]; then
 else
   python_bin=python3
 fi
-exec "$python_bin" "$root/scripts/piw.py" "$@"
+if ! "$python_bin" -c "import pi_graph_core" >/dev/null 2>&1; then
+  printf '%s\n' "Pi Graph Core is not installed in $python_bin." >&2
+  printf '%s\n' "Run: $root/.venv/bin/python -m pip install -e $root" >&2
+  exit 2
+fi
+exec "$python_bin" -m pi_graph_core.cli "$@"
