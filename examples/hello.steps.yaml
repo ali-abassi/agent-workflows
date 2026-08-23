@@ -1,0 +1,13 @@
+version: 1
+workflow: hello-core
+input:
+  required: true
+  description: One name
+steps:
+  - id: normalize
+    cmd: tr '[:lower:]' '[:upper:]' < "$INPUT"
+    gate: grep -q '[A-Z]' "$OUT"
+  - id: greet
+    needs: [normalize]
+    cmd: printf 'Hello, %s!\n' "$(cat "$RUN/normalize.md")"
+    gate: grep -q '^Hello, .*!$' "$OUT"

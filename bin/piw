@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+python_bin=${PI_GRAPH_CORE_PYTHON:-python3}
+exec "$python_bin" "$root/scripts/piw.py" "$@"
