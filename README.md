@@ -22,6 +22,33 @@ validated YAML → deterministic DAG → node output → code-owned gate
 Core is deliberately not another all-in-one agent platform. It is the portable
 execution contract underneath one.
 
+## In plain words
+
+- **What it does.** You write your steps in one small text file
+  (`steps.yaml`)—a numbered checklist. `piw` runs the steps in the right
+  order, tests each step's output before moving on, retries what failed, and
+  stops where a human must decide. If it stops, `piw resume` picks up exactly
+  where it left off.
+- **Why that matters for AI work.** Agents sometimes skip steps or declare
+  unfinished work done. Here a model may *write* a step's content, but plain
+  code decides what runs next, and a real test (the `gate`) decides pass or
+  fail—a model cannot talk its way past it.
+- **What you get afterwards.** Every run is an ordinary folder holding the
+  exact input, every step's output, what each step cost, and a full timeline.
+  No server, no database, no dashboard.
+
+## Which command, when
+
+| You want to | Run |
+|---|---|
+| Start a new workflow file | `piw create NAME` |
+| Check the file is valid (free, nothing executes) | `piw validate NAME --strict` |
+| See the step order before running | `piw graph NAME` |
+| Execute the workflow | `piw run NAME --input "..." --strict --json` |
+| See what a run did, produced, and cost | `piw inspect NAME --json` |
+| Continue a stopped or failed run | `piw resume NAME RUN_ID --json` |
+| Check your machine is ready | `piw doctor` |
+
 ## Try it in two minutes
 
 Install `piw` (the **p**i **w**orkflow command) from the v0.1.0 release:
