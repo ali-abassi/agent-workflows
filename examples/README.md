@@ -36,6 +36,19 @@ file before repeating the demonstration. Both `examples/runs/` and
 `examples/approvals/*.ok` are gitignored, so the checkpoint demo leaves no
 tracked changes behind.
 
+## Any agent: Claude Code and Codex as gated nodes
+
+Requires the `claude` and `codex` CLIs authenticated on PATH; both nodes may
+incur provider cost:
+
+```bash
+piw run examples/any-agent.steps.yaml --input 'deterministic workflows' --strict --json
+```
+
+Each agent writes one sentence; deterministic gates check both outputs, and a
+final command node combines them. Swap in any non-interactive agent CLI the
+same way.
+
 ## Agent review: isolated model node
 
 This example requires Pi authentication and may incur provider cost:
